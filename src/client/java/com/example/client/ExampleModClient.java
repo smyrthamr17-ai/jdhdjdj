@@ -1,49 +1,49 @@
 package com.example.client;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.item.Items;
-import net.minecraft.util.Hand;
-import net.minecraft.util.Identifier;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.Items;
 import org.lwjgl.glfw.GLFW;
 
 public class ExampleModClient implements ClientModInitializer {
-    private static KeyBinding swapKey;
+    private static KeyMapping swapKey;
 
     @Override
     public void onInitializeClient() {
-        swapKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+        swapKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.automace.swap",
-                InputUtil.Type.KEYSYM,
+                InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_R,
-                KeyBinding.Category.create(Identifier.of("automace", "main"))
+                KeyMapping.Category.register(Identifier.fromNamespaceAndPath("automace", "main"))
         ));
 
         ClientTickEvents.END_CLIENT_TICK.register(mc -> {
-            while (swapKey.wasPressed()) {
+            while (swapKey.consumeClick()) {
                 attack(mc);
             }
         });
     }
 
-    private void attack(MinecraftClient mc) {
-        if (mc.player == null || mc.interactionManager == null) return;
+    private void attack(Minecraft mc) {
+        if (mc.player == null || mc.gameMode == null) return;
 
-        Entity target = mc.targetedEntity;
+        Entity target = mc.crosshairPickEntity;
         if (!(target instanceof LivingEntity)) return;
 
-        PlayerInventory inv = mc.player.getInventory();
+        Inventory inv = mc.player.getInventory();
 
         int mace = -1;
         for (int i = 0; i < 9; i++) {
-            if (inv.getStack(i).isOf(Items.MACE)) {
+            if (inv.getItem(i).is(Items.MACE)) {
                 mace = i;
                 break;
             }
@@ -53,8 +53,8 @@ public class ExampleModClient implements ClientModInitializer {
         int prev = inv.getSelectedSlot();
 
         inv.setSelectedSlot(mace);
-        mc.interactionManager.attackEntity(mc.player, target);
-        mc.player.swingHand(Hand.MAIN_HAND);
+        mc.gameMode.attack(mc.player, target);
+        mc.player.swing(InteractionHand.MAIN_HAND);
         inv.setSelectedSlot(prev);
     }
-	}
+			}
